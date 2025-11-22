@@ -1,5 +1,5 @@
 import { FhevmRelayerSDKType, FhevmWindowType } from "./fhevmTypes";
-import { SDK_CDN_URL } from "./constants";
+import { SDK_CDN_URL, SDK_LOCAL_URL } from "./constants";
 
 type TraceType = (message?: unknown, ...optionalParams: unknown[]) => void;
 
@@ -36,50 +36,57 @@ export class RelayerSDKLoader {
     }
 
     return new Promise((resolve, reject) => {
-      const existingScript = document.querySelector(
-        `script[src="${SDK_CDN_URL}"]`
-      );
-      if (existingScript) {
+      const hasExistingScript = (src: string) =>
+        Boolean(document.querySelector(`script[src="${src}"]`));
+
+      // If already present, validate and resolve
+      if (hasExistingScript(SDK_CDN_URL) || hasExistingScript(SDK_LOCAL_URL)) {
         if (!isFhevmWindowType(window, this._trace)) {
           reject(
             new Error(
               "RelayerSDKLoader: window object does not contain a valid relayerSDK object."
             )
           );
+          return;
         }
         resolve();
         return;
       }
 
-      const script = document.createElement("script");
-      script.src = SDK_CDN_URL;
-      script.type = "text/javascript";
-      script.async = true;
+      const tryLoad = (src: string): Promise<void> =>
+        new Promise((res, rej) => {
+          const script = document.createElement("script");
+          script.src = src;
+          script.type = "text/javascript";
+          script.async = true;
 
-      script.onload = () => {
-        if (!isFhevmWindowType(window, this._trace)) {
-          console.log("[RelayerSDKLoader] script onload FAILED...");
-          reject(
-            new Error(
-              `RelayerSDKLoader: Relayer SDK script has been successfully loaded from ${SDK_CDN_URL}, however, the window.relayerSDK object is invalid.`
-            )
-          );
-        }
-        resolve();
-      };
+          script.onload = () => {
+            if (!isFhevmWindowType(window, this._trace)) {
+              console.log("[RelayerSDKLoader] script onload FAILED...");
+              rej(
+                new Error(
+                  `RelayerSDKLoader: Relayer SDK script has been successfully loaded from ${src}, however, the window.relayerSDK object is invalid.`
+                )
+              );
+              return;
+            }
+            res();
+          };
 
-      script.onerror = () => {
-        console.log("[RelayerSDKLoader] script onerror... ");
-        reject(
-          new Error(
-            `RelayerSDKLoader: Failed to load Relayer SDK from ${SDK_CDN_URL}`
-          )
-        );
-      };
+          script.onerror = () => {
+            console.log("[RelayerSDKLoader] script onerror... ");
+            rej(new Error(`RelayerSDKLoader: Failed to load Relayer SDK from ${src}`));
+          };
 
-      console.log("[RelayerSDKLoader] add script to DOM...");
-      document.head.appendChild(script);
-      console.log("[RelayerSDKLoader] script added!")
+          console.log("[RelayerSDKLoader] add script to DOM...", src);
+          document.head.appendChild(script);
+          console.log("[RelayerSDKLoader] script added!");
+        });
+
+      // Try CDN then fallback to local
+      tryLoad(SDK_CDN_URL).then(resolve).catch(() => {
+        tryLoad(SDK_LOCAL_URL).then(resolve).catch(reject);
+      });
     });
   }
 }

@@ -2,12 +2,12 @@
 pragma solidity ^0.8.24;
 
 import {FHE, euint32, externalEuint32, ebool} from "@fhevm/solidity/lib/FHE.sol";
-import {SepoliaConfig} from "@fhevm/solidity/config/ZamaConfig.sol";
+import {ZamaEthereumConfig} from "@fhevm/solidity/config/ZamaConfig.sol";
 
 /// @title Ledger - Privacy-preserving encrypted ledger system
 /// @notice A FHEVM-based ledger system for encrypted income/expense tracking
 /// @dev Only transaction amounts are encrypted, other fields (timestamp, category, isIncome) are stored in plaintext
-contract Ledger is SepoliaConfig {
+contract Ledger is ZamaEthereumConfig {
     // User account structure
     struct UserAccount {
         euint32 balance;              // Encrypted balance

@@ -1,12 +1,12 @@
 //////////////////////////////////////////////////////////////////////////
 //
 // WARNING!!
-// ALWAY USE DYNAMICALLY IMPORT THIS FILE TO AVOID INCLUDING THE ENTIRE 
+// ALWAYS DYNAMICALLY IMPORT THIS FILE TO AVOID INCLUDING THE ENTIRE 
 // FHEVM MOCK LIB IN THE FINAL PRODUCTION BUNDLE!!
 //
 //////////////////////////////////////////////////////////////////////////
 
-import { JsonRpcProvider } from "ethers";
+import { Contract, JsonRpcProvider } from "ethers";
 import { MockFhevmInstance } from "@fhevm/mock-utils";
 import { FhevmInstance } from "../../fhevmTypes";
 
@@ -20,20 +20,45 @@ export const fhevmMockCreateInstance = async (parameters: {
   };
 }): Promise<FhevmInstance> => {
   const provider = new JsonRpcProvider(parameters.rpcUrl);
-  const instance = await MockFhevmInstance.create(provider, provider, {
-    //aclContractAddress: "0x50157CFfD6bBFA2DECe204a89ec419c23ef5755D",
-    aclContractAddress: parameters.metadata.ACLAddress,
-    chainId: parameters.chainId,
-    gatewayChainId: 55815,
-    // inputVerifierContractAddress: "0x901F8942346f7AB3a01F6D7613119Bca447Bb030",
-    // kmsContractAddress: "0x1364cBBf2cDF5032C47d8226a6f6FBD2AFCDacAC",
-    inputVerifierContractAddress: parameters.metadata.InputVerifierAddress,
-    kmsContractAddress: parameters.metadata.KMSVerifierAddress,
-    verifyingContractAddressDecryption:
-      "0x5ffdaAB0373E62E2ea2944776209aEf29E631A64",
-    verifyingContractAddressInputVerification:
-      "0x812b06e1CDCE800494b79fFE4f925A504a9A9810",
-  });
-  return instance;
-};
 
+  // Dynamically resolve EIP712 domains to ensure verifyingContract addresses match
+  const eip712Abi = [
+    "function eip712Domain() external view returns (bytes1, string, string, uint256, address, bytes32, uint256[])",
+  ];
+
+  const inputVerifierContract = new Contract(
+    parameters.metadata.InputVerifierAddress,
+    eip712Abi,
+    provider
+  );
+  const inputDomain = await inputVerifierContract.eip712Domain();
+  const verifyingContractAddressInputVerification = inputDomain[4] as `0x${string}`;
+
+  const kmsVerifierContract = new Contract(
+    parameters.metadata.KMSVerifierAddress,
+    eip712Abi,
+    provider
+  );
+  const kmsDomain = await kmsVerifierContract.eip712Domain();
+  const verifyingContractAddressDecryption = kmsDomain[4] as `0x${string}`;
+
+  const instance = await MockFhevmInstance.create(
+    provider,
+    provider,
+    {
+      aclContractAddress: parameters.metadata.ACLAddress,
+      chainId: parameters.chainId,
+      gatewayChainId: 55815,
+      inputVerifierContractAddress: parameters.metadata.InputVerifierAddress,
+      kmsContractAddress: parameters.metadata.KMSVerifierAddress,
+      verifyingContractAddressDecryption,
+      verifyingContractAddressInputVerification,
+    },
+    {
+      inputVerifierProperties: {},
+      kmsVerifierProperties: {},
+    }
+  );
+  return instance as unknown as FhevmInstance;
+};
+ 
