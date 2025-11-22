@@ -1,6 +1,8 @@
 import { FhevmRelayerSDKType, FhevmWindowType } from "./fhevmTypes";
 import { SDK_CDN_URL, SDK_LOCAL_URL } from "./constants";
 
+// Loader uses CDN with local fallback for reliability.
+
 type TraceType = (message?: unknown, ...optionalParams: unknown[]) => void;
 
 export class RelayerSDKLoader {
