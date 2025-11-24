@@ -48,8 +48,9 @@ next-env.d.ts
 Thumbs.db
 
 # Hardhat
-backend/artifacts/
-backend/cache/
+# Allow tracking of selected Hardhat outputs
+# backend/artifacts/ (now tracked)
+# backend/cache/ (now tracked)
 backend/coverage/
 backend/coverage.json
 backend/types/
