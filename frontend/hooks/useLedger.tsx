@@ -1,5 +1,7 @@
 "use client";
 
+// React hook to interact with the Ledger contract using FHEVM.
+
 import { ethers } from "ethers";
 import {
   RefObject,
@@ -290,10 +292,11 @@ export const useLedger = (parameters: {
           return;
         }
 
-        setClearBalance({ handle: thisBalanceHandle, clear: res[thisBalanceHandle] });
+        const balanceValue = (res as Record<string, string | bigint | boolean>)[thisBalanceHandle];
+        setClearBalance({ handle: thisBalanceHandle, clear: balanceValue });
         clearBalanceRef.current = {
           handle: thisBalanceHandle,
-          clear: res[thisBalanceHandle],
+          clear: balanceValue,
         };
 
         setMessage("Balance decrypted: " + clearBalanceRef.current.clear);
@@ -397,12 +400,12 @@ export const useLedger = (parameters: {
         }
 
         if (thisExpenseHandle && thisExpenseHandle !== ethers.ZeroHash) {
-          const expenseValue = res[thisExpenseHandle] ?? BigInt(0);
+          const expenseValue = (res as Record<string, string | bigint | boolean>)[thisExpenseHandle as string] ?? BigInt(0);
           setClearMonthlyExpense({ handle: thisExpenseHandle, clear: expenseValue });
         }
 
         if (thisBudgetHandle && thisBudgetHandle !== ethers.ZeroHash) {
-          const budgetValue = res[thisBudgetHandle] ?? BigInt(0);
+          const budgetValue = (res as Record<string, string | bigint | boolean>)[thisBudgetHandle as string] ?? BigInt(0);
           setClearMonthlyBudget({ handle: thisBudgetHandle, clear: budgetValue });
         }
 
